@@ -7,24 +7,81 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
 ```
 
-## R Markdown
+## Homework 5
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+### Problem 2
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+study_df =
+  tibble(
+    files = list.files("data"),
+    path = str_c("data/", files)
+  )
 
-```{r cars}
-summary(cars)
+study_df
+```
+```{r}
+study_df =
+  study_df |>
+  mutate(data = map(path, \(p) read_csv(p, show_col_types = FALSE)))
+
+study_df
 ```
 
-## Including Plots
+```{r}
+study_df =
+  study_df |>
+  unnest(data)
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+study_df
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+study_df =
+  study_df |>
+  mutate(
+    files = str_remove(files, "\\.csv$"),
+    arm = str_sub(files, 1, 3)
+  )
+```
+
+```{r}
+study_df =
+  study_df |>
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week",
+    names_prefix = "week_",
+    values_to = "observation"
+  )
+```
+
+```{r}
+study_df =
+  study_df |>
+  mutate(
+    week = as.numeric(week),
+    arm = recode(arm, con = "control", exp = "experimental")
+  ) |>
+  select(arm, subject_id = files, week, observation)
+
+study_df
+```
+
+```{r}
+study_df |>
+  ggplot(aes(x = week, y = observation, group = subject_id, color = arm)) +
+  geom_line() +
+  labs(
+    x = "Week",
+    y = "Observation",
+    color = "Arm",
+    title = "Observations over time for each subject"
+  )
+```
+
+At week 1, both groups start at similar levels, with most observations between about 0 and 2.5. Over the 8 weeks, the control group fluctuates around roughly the same values with no clear trend, while the experimental group trends upward, with several subjects reaching 5 to 7 by week 8. By the end of the study, experimental observations tend to be higher than control observations. There is considerable variation between individuals in both arms, particularly in the experimental arm, suggesting that responses differ between subjects.

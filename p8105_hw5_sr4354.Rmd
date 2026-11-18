@@ -17,6 +17,8 @@ set.seed(1)
 
 ### Problem 2
 
+I list the files, read each one with map, and combine them. I then take the arm and subject ID from the file names and pivot the weekly columns to long format, so each row is one subject at one week.
+
 ```{r}
 study_df =
   tibble(
@@ -44,6 +46,7 @@ study_df =
 study_df
 ```
 
+The spaghetti plot below shows each subject’s observations over time, colored by arm:
 
 ```{r}
 study_df |>
@@ -60,6 +63,9 @@ study_df |>
 At week 1, both groups start at similar levels, with most observations between about 0 and 2.5. Over the 8 weeks, the control group fluctuates around roughly the same values with no clear trend, while the experimental group trends upward, with several subjects reaching 5 to 7 by week 8. By the end of the study, experimental observations tend to be higher than control observations. There is considerable variation between individuals in both arms, particularly in the experimental arm, suggesting that responses differ between subjects.
 
 ### Problem 3
+
+This function draws one sample of size 30 from Normal(μ, 5), runs a one-sample t-test of H: μ = 0, and returns the estimate and p-value.
+
 ```{r}
 sim_t_test = function(mu, n = 30, sigma = 5) {
   x = rnorm(n, mean = mu, sd = sigma)
@@ -74,6 +80,8 @@ sim_t_test = function(mu, n = 30, sigma = 5) {
 sim_t_test(mu = 0)
 sim_t_test(mu = 3)
 ```
+
+I run the function 5000 times for each true μ from 0 to 6:
 
 ```{r}
 sim_results_df =
@@ -94,6 +102,8 @@ sim_results_df |>
   group_by(mu) |>
   summarize(mean_estimate = mean(estimate))
 ```
+
+Power is the proportion of tests with p-value below 0.05; I also save the average estimate for each μ.
 
 ```{r}
 power_df =
@@ -122,6 +132,7 @@ power_df |>
 At μ = 0, the power is approximately 0.05 (5%). This is expected; when the true effect size is zero, the null hypothesis is true, so the test should only reject it at the significance level of 0.05.
 As μ increases, power increases because larger effect sizes are easier to detect. The increase is steepest between μ = 1 and μ = 3, and power eventually levels off near 1 (100%) (the test is almost certain to detect the effect).
 
+I compute the average estimate using only the tests that rejected the null and combine it with the overall average so both can be plotted together.
 ```{r}
 rejected_df =
   sim_results_df |>
@@ -164,4 +175,4 @@ compare_df |>
   )
 ```
 
-The average estimate across all tests is generally close to the true μ, but the average estimate among rejected tests is higher than the true μ when μ is small. This is because, when the effect is small, only samples with unusually high estimates are likely to reach statistical significance. As μ increases, power rises and more samples are rejected, so the rejected group looks more like the full set of samples, and the two averages converge by μ = 5. The sample average among rejected tests is therefore not a good estimate of μ when power is low.
+The average estimate across all tests is essentially equal to the true μ at every value, but among rejected tests it is noticeably higher when μ is small (for example, 2.21 vs. 1 at μ = 1). This is because, when the effect is small, only samples with unusually high estimates are likely to reach statistical significance. As μ increases, power rises and more samples are rejected, so the rejected group looks more like the full set of samples, and the two averages converge by μ = 5. The sample average among rejected tests is therefore not a good estimate of μ when power is low.

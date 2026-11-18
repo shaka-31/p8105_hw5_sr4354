@@ -9,6 +9,8 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
+
+set.seed(1)
 ```
 
 ## Homework 5
@@ -20,49 +22,19 @@ study_df =
   tibble(
     files = list.files("data"),
     path = str_c("data/", files)
-  )
-
-study_df
-```
-```{r}
-study_df =
-  study_df |>
-  mutate(data = map(path, \(p) read_csv(p, show_col_types = FALSE)))
-
-study_df
-```
-
-```{r}
-study_df =
-  study_df |>
-  unnest(data)
-
-study_df
-```
-
-```{r}
-study_df =
-  study_df |>
+  ) |>
+  mutate(data = map(path, \(p) read_csv(p, show_col_types = FALSE))) |>
+  unnest(data) |>
   mutate(
     files = str_remove(files, "\\.csv$"),
     arm = str_sub(files, 1, 3)
-  )
-```
-
-```{r}
-study_df =
-  study_df |>
+  ) |>
   pivot_longer(
     week_1:week_8,
     names_to = "week",
     names_prefix = "week_",
     values_to = "observation"
-  )
-```
-
-```{r}
-study_df =
-  study_df |>
+  ) |>
   mutate(
     week = as.numeric(week),
     arm = recode(arm, con = "control", exp = "experimental")
@@ -72,10 +44,11 @@ study_df =
 study_df
 ```
 
+
 ```{r}
 study_df |>
   ggplot(aes(x = week, y = observation, group = subject_id, color = arm)) +
-  geom_line() +
+  geom_line(alpha = 0.6) +
   labs(
     x = "Week",
     y = "Observation",
@@ -85,3 +58,64 @@ study_df |>
 ```
 
 At week 1, both groups start at similar levels, with most observations between about 0 and 2.5. Over the 8 weeks, the control group fluctuates around roughly the same values with no clear trend, while the experimental group trends upward, with several subjects reaching 5 to 7 by week 8. By the end of the study, experimental observations tend to be higher than control observations. There is considerable variation between individuals in both arms, particularly in the experimental arm, suggesting that responses differ between subjects.
+
+### Problem 3
+```{r}
+sim_t_test = function(mu, n = 30, sigma = 5) {
+  x = rnorm(n, mean = mu, sd = sigma)
+
+  t.test(x, mu = 0) |>
+    broom::tidy() |>
+    select(estimate, p.value)
+}
+```
+
+```{r}
+sim_t_test(mu = 0)
+sim_t_test(mu = 3)
+```
+
+```{r}
+sim_results_df =
+  expand_grid(
+    mu = 0:6,
+    iter = 1:5000
+  ) |>
+  mutate(
+    estimate_df = map(mu, sim_t_test)
+  ) |>
+  unnest(estimate_df)
+
+sim_results_df
+```
+
+```{r}
+sim_results_df |>
+  group_by(mu) |>
+  summarize(mean_estimate = mean(estimate))
+```
+
+```{r}
+power_df =
+  sim_results_df |>
+  group_by(mu) |>
+  summarize(
+    power = mean(p.value < 0.05),
+    avg_estimate = mean(estimate)
+  )
+
+power_df
+```
+
+```{r}
+power_df |>
+  ggplot(aes(x = mu, y = power)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    x = "True value of mu",
+    y = "Power (proportion of rejections)",
+    title = "Power of the one-sample t-test by effect size"
+  )
+```
+

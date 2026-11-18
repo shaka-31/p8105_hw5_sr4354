@@ -119,3 +119,49 @@ power_df |>
   )
 ```
 
+At μ = 0, the power is approximately 0.05 (5%). This is expected; when the true effect size is zero, the null hypothesis is true, so the test should only reject it at the significance level of 0.05.
+As μ increases, power increases because larger effect sizes are easier to detect. The increase is steepest between μ = 1 and μ = 3, and power eventually levels off near 1 (100%) (the test is almost certain to detect the effect).
+
+```{r}
+rejected_df =
+  sim_results_df |>
+  filter(p.value < 0.05) |>
+  group_by(mu) |>
+  summarize(avg_estimate_rejected = mean(estimate))
+
+rejected_df
+```
+
+```{r}
+compare_df =
+  power_df |>
+  select(mu, avg_estimate) |>
+  left_join(rejected_df, by = "mu") |>
+  pivot_longer(
+    avg_estimate:avg_estimate_rejected,
+    names_to = "sample",
+    values_to = "mean_estimate"
+  ) |>
+  mutate(
+    sample = recode(
+      sample,
+      avg_estimate = "All tests",
+      avg_estimate_rejected = "Rejected tests only"
+    )
+  )
+```
+
+```{r}
+compare_df |>
+  ggplot(aes(x = mu, y = mean_estimate, color = sample)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    x = "True value of mu",
+    y = "Average estimate of mu-hat",
+    color = "Sample",
+    title = "Average estimate: all tests vs. rejected tests only"
+  )
+```
+
+The average estimate across all tests is generally close to the true μ, but the average estimate among rejected tests is higher than the true μ when μ is small. This is because, when the effect is small, only samples with unusually high estimates are likely to reach statistical significance. As μ increases, power rises and more samples are rejected, so the rejected group looks more like the full set of samples, and the two averages converge by μ = 5. The sample average among rejected tests is therefore not a good estimate of μ when power is low.

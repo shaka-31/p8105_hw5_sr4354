@@ -51,14 +51,18 @@ The spaghetti plot below shows each subject’s observations over time, colored 
 ```{r}
 study_df |>
   ggplot(aes(x = week, y = observation, group = subject_id, color = arm)) +
+  geom_point() +
   geom_line(alpha = 0.6) +
+  scale_color_viridis_d() +
   labs(
     x = "Week",
     y = "Observation",
     color = "Arm",
     title = "Observations over time for each subject"
-  )
+  ) +
+  theme_minimal()
 ```
+
 
 At week 1, both groups start at similar levels, with most observations between about 0 and 2.5. Over the 8 weeks, the control group fluctuates around roughly the same values with no clear trend, while the experimental group trends upward, with several subjects reaching 5 to 7 by week 8. By the end of the study, experimental observations tend to be higher than control observations. There is considerable variation between individuals in both arms, particularly in the experimental arm, suggesting that responses differ between subjects.
 
